@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mosaico · Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #080808; --surface: #101010; --surface2: #161616;
+  --border: #1f1f1f; --text: #f0f0f0; --muted: #555;
+  --accent: #fff; --green: #3dff8f; --red: #ff4444; --yellow: #ffd84d;
+}
+html { font-size: 14px; scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; }
+
+/* ── LAYOUT ── */
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 24px;
+  position: sticky; top: 0; z-index: 100;
+  gap: 0;
+  height: 52px;
+}
+.topbar-brand {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px; letter-spacing: .12em;
+  color: var(--text); white-space: nowrap;
+  margin-right: 28px; flex-shrink: 0;
+}
+.topbar-brand span { font-size: 10px; color: var(--muted); letter-spacing: .2em; margin-left: 8px; vertical-align: middle; }
+
+.nav {
+  display: flex; align-items: center; gap: 2px; flex: 1;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 0 14px; height: 52px;
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  cursor: pointer; color: var(--muted); transition: all .15s;
+  border: none; background: none;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.nav-item:hover { color: var(--text); background: rgba(255,255,255,.03); }
+.nav-item.active { color: var(--accent); border-bottom-color: var(--accent); }
+.nav-item .n-icon { font-size: 14px; }
+
+.topbar-status {
+  margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.status-dot {
+  display: inline-block; width: 7px; height: 7px;
+  border-radius: 50%; background: var(--muted);
+}
+.status-dot.ok  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.status-dot.err { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+#sidebar-status { font-size: 10px; color: var(--muted); }
+
+/* ── MAIN ── */
+.main { padding: 28px 32px; overflow-y: auto; flex: 1; }
+
+/* ── SECTION ── */
+.section { display: none; }
+.section.active { display: block; }
+
+.section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px; letter-spacing: .08em; margin-bottom: 4px;
+}
+.section-sub { font-size: 11px; color: var(--muted); margin-bottom: 24px; letter-spacing: .1em; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px; margin-bottom: 20px;
+}
+.card-title {
+  font-size: 10px; letter-spacing: .3em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 18px;
+}
+
+/* ── FORM ELEMENTS ── */
+.row { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field label { font-size: 10px; letter-spacing: .2em; color: var(--muted); text-transform: uppercase; }
+.field input, .field select {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px;
+  color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px;
+  outline: none; transition: border-color .2s;
+}
+.field input:focus, .field select:focus { border-color: #333; }
+.field input[type="color"] { padding: 4px 8px; width: 60px; height: 40px; cursor: pointer; }
+
+/* ── BUTTONS ── */
+.btn {
+  padding: 11px 22px; border: none; border-radius: 8px;
+  font-family: 'Bebas Neue', sans-serif; font-size: 15px; letter-spacing: .12em;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.btn-primary { background: #fff; color: #000; }
+.btn-primary:hover { background: #ddd; }
+.btn-primary:active { transform: scale(.97); }
+.btn-outline {
+  background: transparent; color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-outline:hover { border-color: #444; }
+.btn-danger { background: var(--red); color: #fff; }
+.btn-green { background: var(--green); color: #000; }
+.btn[disabled] { opacity: .35; pointer-events: none; }
+
+/* ── UPLOAD AREA ── */
+.upload-area {
+  border: 2px dashed var(--border); border-radius: 12px;
+  padding: 40px 24px; text-align: center; cursor: pointer;
+  transition: border-color .2s, background .2s;
+  position: relative;
+}
+.upload-area:hover, .upload-area.drag { border-color: #555; background: #0d0d0d; }
+.upload-area.drag { border-color: var(--green); }
+.upload-area input[type="file"] { display: none; }
+.upload-area .icon { font-size: 32px; margin-bottom: 12px; }
+.upload-area p { font-size: 11px; color: var(--muted); }
+.upload-area p strong { color: var(--text); }
+
+/* ── GRID PREVIEW ── */
+#grid-preview-wrap {
+  overflow: auto;
+  max-height: calc(100vh - 320px);
+  min-height: 200px;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: #0a0a0a;
+}
+#grid-canvas { display: block; image-rendering: pixelated; }
+
+.grid-info { display: flex; gap: 20px; flex-wrap: wrap; }
+.grid-info span { font-size: 11px; color: var(--muted); }
+.grid-info span b { color: var(--text); }
+
+/* ── EDITOR ── */
+.editor-layout {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 16px;
+  align-items: start;
+}
+
+.editor-canvas-wrap {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 0 0 10px 10px;
+  overflow: auto;
+  background: #050505;
+  cursor: grab;
+  user-select: none;
+  height: calc(100vh - 260px);
+  min-height: 340px;
+}
+.editor-canvas-wrap:active { cursor: grabbing; }
+#editor-canvas { display: block; image-rendering: pixelated; }
+
+.editor-hint {
+  position: sticky; bottom: 10px; left: 50%;
+  transform: translateX(-50%);
+  width: fit-content;
+  background: rgba(0,0,0,.8); border: 1px solid #222;
+  border-radius: 20px; padding: 4px 12px;
+  font-size: 10px; color: var(--muted); letter-spacing: .15em;
+  pointer-events: none; white-space: nowrap;
+  margin: 0 auto;
+}
+
+.editor-controls {
+  display: flex; flex-direction: column; gap: 0;
+  position: sticky; top: 0;  /* painel de controle fica fixo enquanto canvas rola */
+}
+.ctrl-group {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-bottom: 16px;
+}
+.ctrl-label {
+  font-size: 10px; letter-spacing: .2em; color: var(--muted);
+  text-transform: uppercase; display: flex; justify-content: space-between;
+}
+.ctrl-label span { color: var(--text); font-weight: 500; }
+input[type="range"] {
+  -webkit-appearance: none; width: 100%; height: 3px;
+  background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  border-radius: 50%; background: #fff; cursor: pointer;
+  box-shadow: 0 0 0 2px #000, 0 0 0 3px #444;
+}
+.ctrl-divider { height: 1px; background: var(--border); margin: 4px 0 16px; }
+
+/* ── QR GRID ── */
+#qr-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px; max-height: 520px; overflow-y: auto;
+}
+.qr-cell {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px; text-align: center;
+}
+.qr-cell .qr-img { background: #fff; border-radius: 6px; padding: 6px; margin-bottom: 8px; display: inline-block; }
+.qr-cell .qr-img canvas, .qr-cell .qr-img img { display: block; }
+.qr-cell p { font-size: 10px; color: var(--muted); letter-spacing: .1em; }
+.qr-cell .qr-color { width: 12px; height: 12px; border-radius: 3px; display: inline-block; margin-right: 6px; vertical-align: middle; }
+
+/* ── EVENT CONFIG ── */
+.event-summary {
+  padding: 16px 20px; background: var(--surface2);
+  border-radius: 10px; border: 1px solid var(--border);
+  display: flex; gap: 32px; flex-wrap: wrap;
+}
+.event-summary .kv p { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+.event-summary .kv span { font-size: 14px; font-weight: 500; }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 13px 24px;
+  font-size: 12px; letter-spacing: .1em;
+  transition: transform .3s ease; z-index: 999;
+  pointer-events: none;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+#toast.ok { border-color: var(--green); color: var(--green); }
+#toast.err { border-color: var(--red); color: var(--red); }
+
+/* ── BADGE PILL ── */
+.pill {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 10px; letter-spacing: .15em; font-weight: 500;
+}
+.pill-yellow { background: #2a2200; color: var(--yellow); }
+.pill-green  { background: #002a12; color: var(--green); }
+
+/* ── PROGRESS ── */
+.progress-bar {
+  height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 12px;
+}
+.progress-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width .3s; }
+
+/* ── FASES ── */
+.phase-tabs {
+  display: flex; gap: 8px; margin-bottom: 14px;
+}
+.phase-tab {
+  padding: 9px 20px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--muted);
+  font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: .12em;
+  cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 8px;
+}
+.phase-tab:hover { border-color: #444; color: var(--text); }
+.phase-tab.active { border-color: #fff; color: #fff; background: #111; }
+.phase-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--muted); display: inline-block; flex-shrink: 0;
+}
+.phase-dot.done { background: var(--green); box-shadow: 0 0 5px var(--green); }
+.phase-label {
+  font-size: 11px; color: var(--muted); letter-spacing: .1em;
+}
+.phase-label strong { color: var(--text); }
+
+/* ── GRID EFFECT BUTTON ── */
+.btn-grid-effect {
+  padding: 11px 14px; border: none; border-radius: 8px;
+  background: #1a1a00; color: var(--yellow);
+  border: 1px solid #3a3a00;
+  font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: .12em;
+  cursor: pointer; transition: all .2s; white-space: nowrap;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn-grid-effect:hover { background: #2a2a00; border-color: var(--yellow); }
+.btn-grid-effect:active { transform: scale(.97); }
+.btn-grid-effect.applied {
+  background: #002a12; color: var(--green); border-color: var(--green);
+}
+.btn-grid-effect.applied:hover { background: #003a1a; }
+
+/* ── TOOL TOOLBAR ── */
+.tool-toolbar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px 10px 0 0; border-bottom: none;
+  flex-wrap: wrap;
+}
+.tool-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 6px;
+  border: 1px solid transparent; background: transparent;
+  color: var(--muted); font-family: 'DM Mono', monospace;
+  font-size: 11px; letter-spacing: .05em;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.tool-btn:hover { background: #1e1e1e; color: var(--text); }
+.tool-btn.active {
+  background: #111; color: var(--text);
+  border-color: var(--border);
+}
+.tool-btn.active.brush-mode { color: var(--yellow); border-color: #3a3a00; background: #1a1a00; }
+.tool-btn.active.eyedrop-mode { color: #7dd3fc; border-color: #0c3a5a; background: #051a2a; }
+.tool-sep {
+  width: 1px; height: 20px; background: var(--border); margin: 0 4px; flex-shrink: 0;
+}
+.tool-color-wrap {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 6px;
+  border: 1px solid var(--border); background: #111;
+  cursor: pointer;
+}
+.tool-color-wrap input[type="color"] {
+  width: 20px; height: 20px; padding: 0; border: none;
+  border-radius: 4px; cursor: pointer; background: none;
+}
+.tool-color-wrap span {
+  font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace;
+  letter-spacing: .05em;
+}
+.tool-pixel-info {
+  margin-left: auto; font-size: 10px; color: var(--muted);
+  letter-spacing: .1em; padding: 4px 8px;
+  background: #0a0a0a; border: 1px solid var(--border);
+  border-radius: 6px; font-family: 'DM Mono', monospace;
+}
+
+/* ── ZOOM BUTTON ── */
+.zoom-btn {
+  width: 28px; height: 28px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text); font-size: 16px; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: border-color .15s, background .15s; flex-shrink: 0;
+  font-family: monospace; padding: 0;
+}
+.zoom-btn:hover { border-color: #444; background: #1e1e1e; }
+.zoom-btn:active { transform: scale(.92); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .topbar { flex-wrap: wrap; height: auto; padding: 10px 16px; gap: 8px; }
+  .topbar-brand { margin-right: 0; }
+  .nav { flex-wrap: wrap; gap: 0; }
+  .nav-item { height: 36px; font-size: 10px; padding: 0 10px; }
+  .main { padding: 16px; }
+  .editor-layout { grid-template-columns: 1fr; }
+  .editor-canvas-wrap { height: 50vh; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── TOPBAR ── -->
+  <header class="topbar">
+    <div class="topbar-brand">MOSAICO <span>ADMIN</span></div>
+    <nav class="nav">
+      <button class="nav-item active" data-section="sec-grid">
+        <span class="n-icon">⊞</span> Grid & Imagem
+      </button>
+      <button class="nav-item" data-section="sec-evento">
+        <span class="n-icon">⏱</span> Evento
+      </button>
+      <button class="nav-item" data-section="sec-qrcodes">
+        <span class="n-icon">◫</span> QR Codes
+      </button>
+      <button class="nav-item" data-section="sec-exportar">
+        <span class="n-icon">↓</span> Exportar
+      </button>
+      <button class="nav-item" data-section="sec-config">
+        <span class="n-icon">⚙</span> Config
+      </button>
+    </nav>
+    <div class="topbar-status">
+      <span class="status-dot" id="dot-status"></span>
+      <span id="sidebar-status">Supabase não configurado</span>
+    </div>
+  </header>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+
+    <!-- 1. GRID & IMAGEM -->
+    <section id="sec-grid" class="section active">
+      <div class="section-title">Grid & Imagem</div>
+      <p class="section-sub">DEFINA A MALHA E AS FASES DO MOSAICO (ATÉ 3 IMAGENS)</p>
+
+      <!-- Malha -->
+      <div class="card">
+        <p class="card-title">Dimensões da Malha</p>
+        <div class="row">
+          <div class="field">
+            <label>Colunas</label>
+            <input type="number" id="grid-cols" value="30" min="2" max="200">
+          </div>
+          <div class="field">
+            <label>Linhas</label>
+            <input type="number" id="grid-rows" value="20" min="2" max="200">
+          </div>
+          <div class="field">
+            <label>Cor de fundo</label>
+            <input type="color" id="grid-default-color" value="#000000">
+          </div>
+          <button class="btn btn-outline" id="btn-apply-grid">Aplicar Grid</button>
+        </div>
+      </div>
+
+      <!-- Seletor de fases -->
+      <div class="card">
+        <p class="card-title">Fases do Mosaico</p>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.8">
+          Cada fase exibe uma imagem diferente em sequência. Configure quantas quiser (1, 2 ou 3).<br>
+          O tempo de cada fase é definido na seção <strong>Evento</strong>.
+        </p>
+        <div class="phase-tabs">
+          <button class="phase-tab active" data-phase="0">Fase 1 <span class="phase-dot" id="pdot-0"></span></button>
+          <button class="phase-tab" data-phase="1">Fase 2 <span class="phase-dot" id="pdot-1"></span></button>
+          <button class="phase-tab" data-phase="2">Fase 3 <span class="phase-dot" id="pdot-2"></span></button>
+        </div>
+        <p class="phase-label" id="phase-label">Editando: <strong>Fase 1</strong> · imagem principal do mosaico</p>
+      </div>
+
+      <!-- Upload -->
+      <div class="card" id="upload-card">
+        <p class="card-title">Upload — <span id="upload-phase-label">Fase 1</span></p>
+        <div class="upload-area" id="upload-area">
+          <input type="file" id="file-input" accept="image/*">
+          <div class="icon">🖼</div>
+          <p><strong>Arraste ou clique</strong> para escolher a imagem</p>
+          <p>PNG, JPG, GIF · Proporção sempre preservada</p>
+        </div>
+        <div class="progress-bar" id="proc-progress-wrap" style="display:none; margin-top:12px">
+          <div class="progress-fill" id="proc-progress" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Editor -->
+      <div class="card" id="editor-card" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+          <p class="card-title" style="margin:0">Editor — <span id="editor-phase-label">Fase 1</span></p>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:10px;color:var(--muted);letter-spacing:.15em">ZOOM GRID</span>
+            <button class="zoom-btn" id="ed-zoom-out">−</button>
+            <span id="ed-zoom-label" style="font-size:11px;color:var(--text);min-width:36px;text-align:center">1×</span>
+            <button class="zoom-btn" id="ed-zoom-in">+</button>
+            <button class="zoom-btn" id="ed-zoom-reset" title="Resetar zoom">↺</button>
+          </div>
+        </div>
+        <div class="editor-layout">
+          <div style="display:flex;flex-direction:column;gap:0;min-height:0;flex:1">
+            <!-- Toolbar de ferramentas -->
+            <div class="tool-toolbar">
+              <button class="tool-btn active" id="tool-move" title="Mover imagem (M)">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v14M1 8h14M8 1L5 4M8 1l3 3M8 15l-3-3M8 15l3-3M1 8l3-3M1 8l3 3M15 8l-3-3M15 8l-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <span>Mover</span>
+              </button>
+              <button class="tool-btn" id="tool-brush" title="Pincel — pinta pixel (B)">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 13c1-1 2.5-.5 3.5-1.5L12 5l-1-1-6.5 6.5C3.5 11.5 3 13 2 13z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="13" cy="3" r="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
+                <span>Pincel</span>
+              </button>
+              <button class="tool-btn" id="tool-eyedrop" title="Conta-gotas — captura cor (E)">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 2l4 4-6 6-1-1-3 3H2v-2l3-3-1-1 6-6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                <span>Conta-gotas</span>
+              </button>
+              <div class="tool-sep"></div>
+              <!-- Cor ativa do pincel -->
+              <div class="tool-color-wrap" title="Cor do pincel">
+                <input type="color" id="brush-color" value="#ff0000">
+                <span id="brush-color-hex">#ff0000</span>
+              </div>
+              <!-- Indicador de pixel hover -->
+              <div class="tool-pixel-info" id="tool-pixel-info">—</div>
+            </div>
+
+            <div class="editor-canvas-wrap" id="editor-canvas-wrap">
+              <canvas id="editor-canvas"></canvas>
+              <div class="editor-hint" id="editor-hint">⬌ arraste para mover · scroll = zoom</div>
+            </div>
+          </div>
+          <div class="editor-controls">
+            <div class="ctrl-group">
+              <label class="ctrl-label">Tamanho <span id="scale-val">100%</span></label>
+              <input type="range" id="ctrl-scale" min="10" max="300" value="100" step="1">
+            </div>
+            <div class="ctrl-group">
+              <label class="ctrl-label">Posição X <span id="posx-val">0px</span></label>
+              <input type="range" id="ctrl-posx" min="-200" max="200" value="0" step="1">
+            </div>
+            <div class="ctrl-group">
+              <label class="ctrl-label">Posição Y <span id="posy-val">0px</span></label>
+              <input type="range" id="ctrl-posy" min="-200" max="200" value="0" step="1">
+            </div>
+            <div class="ctrl-divider"></div>
+            <div class="ctrl-group">
+              <label class="ctrl-label">Cor de fundo</label>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="color" id="ctrl-bg" value="#000000" style="width:48px;height:32px;padding:2px 4px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer">
+                <span style="font-size:10px;color:var(--muted)">pixels sem imagem</span>
+              </div>
+            </div>
+            <div class="ctrl-divider"></div>
+            <button class="btn btn-outline" id="btn-reset-editor" style="width:100%">↺ Centralizar</button>
+            <button class="btn btn-outline" id="btn-new-image" style="width:100%;margin-top:8px">🖼 Trocar imagem</button>
+            <div class="ctrl-divider"></div>
+            <button class="btn btn-grid-effect" id="btn-grid-effect" style="width:100%">
+              ⬛ Aplicar Grid Effect
+            </button>
+            <p id="grid-effect-hint" style="font-size:10px;color:var(--muted);line-height:1.6;margin-top:8px">
+              Converte cada célula para a cor dominante. Visualize exatamente o que o torcedor verá.
+            </p>
+            <div class="ctrl-divider"></div>
+            <button class="btn btn-danger" id="btn-clear-phase" style="width:100%;font-size:12px">✕ Remover esta fase</button>
+          </div>
+        </div>
+        <div class="grid-info" style="margin-top:16px">
+          <span>Pixels: <b id="info-total">—</b></span>
+          <span>Grid: <b id="info-cols">—</b> × <b id="info-rows">—</b></span>
+          <span>Imagem: <b id="info-imgsize">—</b></span>
+          <span>Status: <b id="info-status">aguardando imagem</b></span>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn btn-primary" id="btn-save-grid" disabled>Salvar tudo no Supabase</button>
+          <button class="btn btn-outline" id="btn-clear-grid">Limpar tudo</button>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="card" id="preview-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <p class="card-title" style="margin:0">Preview do Grid</p>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:10px;color:var(--muted);letter-spacing:.15em">ZOOM</span>
+            <button class="zoom-btn" id="grid-zoom-out">−</button>
+            <span id="grid-zoom-label" style="font-size:11px;color:var(--text);min-width:36px;text-align:center">1×</span>
+            <button class="zoom-btn" id="grid-zoom-in">+</button>
+            <button class="zoom-btn" id="grid-zoom-reset" title="Resetar zoom">↺</button>
+          </div>
+        </div>
+        <div id="grid-preview-wrap">
+          <canvas id="grid-canvas"></canvas>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 2. EVENTO -->
+    <section id="sec-evento" class="section">
+      <div class="section-title">Configurar Evento</div>
+      <p class="section-sub">DEFINA A DATA E HORÁRIO EXATO DO DISPARO (HORÁRIO DE BRASÍLIA)</p>
+
+      <div class="card">
+        <p class="card-title">Data & Hora do Disparo</p>
+        <div class="row">
+          <div class="field">
+            <label>Data</label>
+            <input type="date" id="event-date">
+          </div>
+          <div class="field">
+            <label>Hora (BRT)</label>
+            <input type="time" id="event-time" step="1">
+          </div>
+          <button class="btn btn-primary" id="btn-save-event">Salvar Evento</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Duração das Fases</p>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:18px;line-height:1.8">
+          Defina por quantos segundos cada fase fica visível na tela do torcedor.<br>
+          Fase 3 (se configurada) fica ativa até o torcedor sair da página.
+        </p>
+        <div class="row">
+          <div class="field">
+            <label>⏱ Fase 1 — duração (seg)</label>
+            <input type="number" id="duration-1" value="30" min="5" max="3600" style="width:120px">
+          </div>
+          <div class="field">
+            <label>⏱ Fase 2 → Fase 3 (seg)</label>
+            <input type="number" id="duration-2" value="30" min="5" max="3600" style="width:120px">
+          </div>
+        </div>
+        <p style="font-size:10px;color:var(--muted);margin-top:14px">
+          Exemplo: 30 seg → exibe Fase 1 por 30s, depois Fase 2 por 30s, depois Fase 3 indefinidamente.
+        </p>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Resumo do Evento</p>
+        <div class="event-summary" id="event-summary">
+          <div class="kv"><p>DISPARO</p><span id="ev-datetime">—</span></div>
+          <div class="kv"><p>COUNTDOWN</p><span id="ev-countdown">—</span></div>
+          <div class="kv"><p>PIXELS</p><span id="ev-pixels">—</span></div>
+          <div class="kv"><p>STATUS</p><span id="ev-status">—</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. QR CODES -->
+    <section id="sec-qrcodes" class="section">
+      <div class="section-title">QR Codes</div>
+      <p class="section-sub">GERE OS QR CODES ÚNICOS PARA CADA POSIÇÃO DA MALHA</p>
+
+      <div class="card">
+        <p class="card-title">URL Base dos QR Codes</p>
+        <div class="row">
+          <div class="field" style="flex:1">
+            <label>URL do App do Torcedor</label>
+            <input type="text" id="base-url" placeholder="https://meusite.com/torcedor.html" value="">
+          </div>
+          <button class="btn btn-primary" id="btn-gen-qr">Gerar QR Codes</button>
+        </div>
+        <div class="progress-bar" id="qr-progress-wrap" style="display:none; margin-top:16px">
+          <div class="progress-fill" id="qr-progress" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="card-title">QR Codes Gerados — <span id="qr-count">0</span> pixels</p>
+        <div id="qr-container">
+          <p style="color:var(--muted); font-size:11px">Nenhum QR Code gerado ainda.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. EXPORTAR -->
+    <section id="sec-exportar" class="section">
+      <div class="section-title">Exportar</div>
+      <p class="section-sub">BAIXE OS DADOS PARA LOGÍSTICA E IMPRESSÃO</p>
+
+      <div class="card">
+        <p class="card-title">CSV — Mapa de Cadeiras</p>
+        <p style="font-size:11px; color:var(--muted); margin-bottom:18px; line-height:1.8">
+          Exporta uma planilha com: ID, Linha, Coluna, Cor Hex, URL do QR Code.<br>
+          Use para mapear fisicamente as cadeiras no estádio.
+        </p>
+        <button class="btn btn-primary" id="btn-export-csv">Baixar CSV</button>
+      </div>
+
+      <div class="card">
+        <p class="card-title">PNG — Todos os QR Codes</p>
+        <p style="font-size:11px; color:var(--muted); margin-bottom:18px; line-height:1.8">
+          Baixa um ZIP com cada QR Code nomeado pela posição (ex: <code>A-10.png</code>).
+        </p>
+        <button class="btn btn-outline" id="btn-export-zip">Baixar ZIP de PNGs</button>
+        <p style="font-size:10px; color:var(--muted); margin-top:10px">* Requer JSZip · instale se quiser usar este recurso.</p>
+      </div>
+    </section>
+
+    <!-- 5. CONFIGURAÇÃO -->
+    <section id="sec-config" class="section">
+      <div class="section-title">Configuração</div>
+      <p class="section-sub">CREDENCIAIS DO SUPABASE</p>
+
+      <div class="card">
+        <p class="card-title">Supabase</p>
+        <div class="field" style="margin-bottom:14px">
+          <label>Project URL</label>
+          <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co">
+        </div>
+        <div class="field" style="margin-bottom:18px">
+          <label>Anon Key</label>
+          <input type="text" id="cfg-key" placeholder="eyJhbGciOiJI...">
+        </div>
+        <div style="display:flex; gap:12px">
+          <button class="btn btn-primary" id="btn-save-cfg">Salvar</button>
+          <button class="btn btn-outline" id="btn-test-cfg">Testar Conexão</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Estrutura de Tabelas Supabase</p>
+        <pre style="font-size:11px; color: #888; line-height:1.8; overflow-x:auto"><code>-- Pixels do mosaico
+create table pixels (
+  id          text primary key,   -- ex: "A-10"
+  row         int  not null,
+  col         int  not null,
+  hex_color   text not null,
+  seat        text,
+  event_time  timestamptz
+);
+
+-- Evento (1 linha só)
+create table event (
+  id          int  primary key default 1,
+  event_time  timestamptz,
+  grid_rows   int,
+  grid_cols   int,
+  active      boolean default false
+);</code></pre>
+        <button class="btn btn-outline" style="margin-top:16px" id="btn-copy-sql">Copiar SQL</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// ESTADO GLOBAL
+// ─────────────────────────────────────────────────────────────
+const state = {
+  cols: 30, rows: 20,
+  pixels: [],          // [{id, row, col, hex_color, hex_color_2, hex_color_3}]
+  srcImage: null,      // imagem ativa no editor (fase atual)
+  activePhase: 0,      // 0, 1 ou 2
+  phases: [
+    { srcImage: null, scale: 1, offX: 0, offY: 0, bgColor: '#000000' },
+    { srcImage: null, scale: 1, offX: 0, offY: 0, bgColor: '#000000' },
+    { srcImage: null, scale: 1, offX: 0, offY: 0, bgColor: '#000000' },
+  ],
+  eventTime: null,
+  duration1: 30,       // segundos que a fase 1 fica na tela
+  duration2: 30,       // segundos que a fase 2 fica na tela
+  supabaseUrl: '',
+  supabaseKey: '',
+  baseUrl: '',
+  qrGenerated: false,
+};
+
+// ─────────────────────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const toast = (msg, type='ok') => {
+  const t = $('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  setTimeout(() => t.className = '', 2800);
+};
+const alphaRow = r => {
+  // converte índice de linha para letra(s): 0→A, 25→Z, 26→AA...
+  let s='', n=r;
+  do { s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n/26)-1; } while(n>=0);
+  return s;
+};
+const pixelId = (r,c) => `${alphaRow(r)}-${c+1}`;
+
+// ─────────────────────────────────────────────────────────────
+// NAVEGAÇÃO
+// ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    $(btn.dataset.section).classList.add('active');
+    if (btn.dataset.section === 'sec-evento') updateEventSummary();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// SEÇÃO 1 — GRID & IMAGEM
+// ─────────────────────────────────────────────────────────────
+const canvas = $('grid-canvas');
+const ctx    = canvas.getContext('2d');
+
+function applyGrid() {
+  state.cols = parseInt($('grid-cols').value) || 30;
+  state.rows = parseInt($('grid-rows').value) || 20;
+  const defColor = $('grid-default-color').value;
+
+  state.pixels = [];
+  for (let r = 0; r < state.rows; r++) {
+    for (let c = 0; c < state.cols; c++) {
+      state.pixels.push({ id: pixelId(r,c), row: r, col: c,
+        hex_color: defColor, hex_color_2: null, hex_color_3: null });
+    }
+  }
+
+  // Se já tem imagem carregada, reabre o editor com o novo grid
+  if (state.srcImage) {
+    openEditor(state.srcImage);
+  } else {
+    renderGrid();
+    $('info-status') && ($('info-status').textContent = 'grid pronto — faça upload de uma imagem');
+  }
+  toast('Grid ' + state.cols + '×' + state.rows + ' aplicado.');
+}
+
+// zoom do preview grid: 1 = 10px/célula, steps de 0.5
+let gridZoomLevel = 1;
+const GRID_CELL_BASE = 10;
+const GRID_ZOOM_STEPS = [0.5, 1, 1.5, 2, 3, 4, 6];
+
+function renderGrid() {
+  const CELL = Math.round(GRID_CELL_BASE * gridZoomLevel);
+  canvas.width  = state.cols * CELL;
+  canvas.height = state.rows * CELL;
+  canvas.style.width  = (state.cols * CELL) + 'px';
+  canvas.style.height = (state.rows * CELL) + 'px';
+
+  // Células coloridas
+  state.pixels.forEach(p => {
+    ctx.fillStyle = p.hex_color;
+    ctx.fillRect(p.col * CELL, p.row * CELL, CELL, CELL);
+  });
+
+  // Grade
+  ctx.strokeStyle = 'rgba(255,255,255,.08)';
+  ctx.lineWidth = .5;
+  for (let c = 0; c <= state.cols; c++) {
+    ctx.beginPath(); ctx.moveTo(c*CELL,0); ctx.lineTo(c*CELL, state.rows*CELL); ctx.stroke();
+  }
+  for (let r = 0; r <= state.rows; r++) {
+    ctx.beginPath(); ctx.moveTo(0, r*CELL); ctx.lineTo(state.cols*CELL, r*CELL); ctx.stroke();
+  }
+
+  // Labels de posição como marca d'água — só quando célula >= 14px
+  if (CELL >= 14) {
+    const fontSize = Math.max(5, Math.min(CELL * 0.28, 11));
+    ctx.font = `${fontSize}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    state.pixels.forEach(p => {
+      // contraste automático baseado na luminância da cor do pixel
+      const hex = p.hex_color.replace('#','');
+      const r = parseInt(hex.slice(0,2),16);
+      const g = parseInt(hex.slice(2,4),16);
+      const b = parseInt(hex.slice(4,6),16);
+      const lum = (0.299*r + 0.587*g + 0.114*b) / 255;
+      ctx.fillStyle = lum > 0.5 ? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.35)';
+      const label = CELL >= 28 ? p.id : (CELL >= 18 ? alphaRow(p.row) + (p.col+1) : p.id);
+      ctx.fillText(label, p.col*CELL + CELL/2, p.row*CELL + CELL/2);
+    });
+  }
+}
+
+// Controles de zoom do preview
+function updateGridZoomLabel() {
+  const z = GRID_ZOOM_STEPS[gridZoomLevel];
+  $('grid-zoom-label').textContent = z + '×';
+}
+let gridZoomIdx = 1; // índice no array GRID_ZOOM_STEPS
+gridZoomLevel = GRID_ZOOM_STEPS[gridZoomIdx];
+
+$('grid-zoom-in').addEventListener('click', () => {
+  if (gridZoomIdx < GRID_ZOOM_STEPS.length - 1) {
+    gridZoomIdx++;
+    gridZoomLevel = GRID_ZOOM_STEPS[gridZoomIdx];
+    updateGridZoomLabel();
+    if (state.pixels.length) renderGrid();
+  }
+});
+$('grid-zoom-out').addEventListener('click', () => {
+  if (gridZoomIdx > 0) {
+    gridZoomIdx--;
+    gridZoomLevel = GRID_ZOOM_STEPS[gridZoomIdx];
+    updateGridZoomLabel();
+    if (state.pixels.length) renderGrid();
+  }
+});
+$('grid-zoom-reset').addEventListener('click', () => {
+  gridZoomIdx = 1;
+  gridZoomLevel = GRID_ZOOM_STEPS[gridZoomIdx];
+  updateGridZoomLabel();
+  if (state.pixels.length) renderGrid();
+});
+updateGridZoomLabel();
+
+function updateGridInfo(status) {
+  if ($('info-total')) $('info-total').textContent = state.pixels.length;
+  if ($('info-cols'))  $('info-cols').textContent  = state.cols;
+  if ($('info-rows'))  $('info-rows').textContent  = state.rows;
+  if ($('info-status'))$('info-status').textContent = status;
+}
+
+$('btn-apply-grid').addEventListener('click', applyGrid);
+$('btn-clear-grid').addEventListener('click', () => {
+  state.pixels = [];
+  state.srcImage = null;
+  state.activePhase = 0;
+  state.phases = [
+    { srcImage: null, scale: 1, offX: 0, offY: 0, bgColor: '#000000' },
+    { srcImage: null, scale: 1, offX: 0, offY: 0, bgColor: '#000000' },
+    { srcImage: null, scale: 1, offX: 0, offY: 0, bgColor: '#000000' },
+  ];
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  $('editor-card').style.display = 'none';
+  $('upload-card').style.display = '';
+  $('preview-card').style.display = '';
+  $('btn-save-grid').disabled = true;
+  updatePhaseDots();
+  switchPhase(0);
+  toast('Grid e fases limpos.');
+});
+
+// ── Seletor de fases ──
+document.querySelectorAll('.phase-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const idx = parseInt(tab.dataset.phase);
+    saveEditorToPhase(); // salva estado atual antes de trocar
+    switchPhase(idx);
+  });
+});
+
+function switchPhase(idx) {
+  state.activePhase = idx;
+  document.querySelectorAll('.phase-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  const labels = ['Fase 1 · imagem principal', 'Fase 2 · segunda imagem', 'Fase 3 · terceira imagem'];
+  const shortLabels = ['Fase 1','Fase 2','Fase 3'];
+  $('phase-label').innerHTML = 'Editando: <strong>' + shortLabels[idx] + '</strong> · ' + labels[idx].split('·')[1].trim();
+  $('upload-phase-label').textContent = shortLabels[idx];
+  $('editor-phase-label').textContent = shortLabels[idx];
+
+  const phase = state.phases[idx];
+  if (phase.srcImage) {
+    // Restaura o editor com os dados da fase
+    restoreEditorFromPhase(idx);
+    $('upload-card').style.display = 'none';
+    $('preview-card').style.display = 'none';
+    $('editor-card').style.display = '';
+  } else {
+    $('editor-card').style.display = 'none';
+    $('upload-card').style.display = '';
+    $('preview-card').style.display = state.pixels.length ? '' : '';
+  }
+}
+
+function saveEditorToPhase() {
+  if (!state.srcImage) return;
+  const p = state.phases[state.activePhase];
+  p.srcImage = state.srcImage;
+  p.scale    = editor.scale;
+  p.offX     = editor.offX;
+  p.offY     = editor.offY;
+  p.bgColor  = $('ctrl-bg').value;
+}
+
+function restoreEditorFromPhase(idx) {
+  const p = state.phases[idx];
+  state.srcImage = p.srcImage;
+  editor.scale   = p.scale;
+  editor.offX    = p.offX;
+  editor.offY    = p.offY;
+  $('ctrl-bg').value = p.bgColor;
+
+  rebuildEditorCanvas();
+  syncSlidersFromEditor();
+  updateEditorInfo();
+  renderEditor();
+}
+
+function updatePhaseDots() {
+  state.phases.forEach((p, i) => {
+    const dot = $('pdot-' + i);
+    if (dot) dot.className = 'phase-dot' + (p.srcImage ? ' done' : '');
+  });
+}
+
+$('btn-clear-phase').addEventListener('click', () => {
+  const idx = state.activePhase;
+  state.phases[idx] = { srcImage: null, scale: 1, offX: 0, offY: 0, bgColor: '#000000' };
+  state.srcImage = null;
+  // Limpa hex_color_X correspondente nos pixels
+  const colorKey = idx === 0 ? 'hex_color' : ('hex_color_' + (idx+1));
+  state.pixels.forEach(p => { p[colorKey] = $('grid-default-color').value; });
+  updatePhaseDots();
+  $('editor-card').style.display = 'none';
+  $('upload-card').style.display = '';
+  $('preview-card').style.display = '';
+  renderGrid();
+  toast('Fase ' + (idx+1) + ' removida.');
+});
+
+// ─────────────────────────────────────────────────────────────
+// EDITOR DE POSIÇÃO
+// ─────────────────────────────────────────────────────────────
+const edCanvas = $('editor-canvas');
+const edCtx    = edCanvas.getContext('2d', { willReadFrequently: true });
+let DISPLAY_CELL = 18; // px por célula no editor (dinâmico via zoom)
+const ED_CELL_STEPS = [8, 10, 12, 14, 18, 24, 32, 48];
+let edZoomIdx = 4; // começa em 18px
+
+const editor = { scale: 1, offX: 0, offY: 0, dragging: false, lastX: 0, lastY: 0 };
+let gridEffectApplied = false;
+let activeTool = 'move'; // 'move' | 'brush' | 'eyedrop'
+let isPainting  = false;
+
+// ── Ferramenta ativa ──
+function setTool(tool) {
+  activeTool = tool;
+  document.querySelectorAll('.tool-btn').forEach(b => {
+    b.classList.remove('active','brush-mode','eyedrop-mode');
+  });
+  const btn = $('tool-' + tool);
+  if (btn) {
+    btn.classList.add('active');
+    if (tool === 'brush')   btn.classList.add('brush-mode');
+    if (tool === 'eyedrop') btn.classList.add('eyedrop-mode');
+  }
+  // cursor do canvas
+  const cursors = { move: gridEffectApplied ? 'default' : 'grab', brush: 'crosshair', eyedrop: 'crosshair' };
+  edCanvas.style.cursor = cursors[tool] || 'default';
+  // hint
+  const hints = {
+    move:     '⬌ arraste para mover · scroll = zoom',
+    brush:    '✏ clique ou arraste para pintar pixels',
+    eyedrop:  '🔍 clique num pixel para capturar a cor'
+  };
+  const hint = $('editor-hint');
+  if (hint) hint.textContent = hints[tool];
+}
+
+$('tool-move').addEventListener('click',    () => setTool('move'));
+$('tool-brush').addEventListener('click',   () => setTool('brush'));
+$('tool-eyedrop').addEventListener('click', () => setTool('eyedrop'));
+
+// Atalhos de teclado: M = move, B = brush, E = eyedrop
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return; // ignora quando digita em campo
+  if (e.key === 'm' || e.key === 'M') setTool('move');
+  if (e.key === 'b' || e.key === 'B') setTool('brush');
+  if (e.key === 'e' || e.key === 'E') setTool('eyedrop');
+});
+
+// Cor do pincel
+$('brush-color').addEventListener('input', () => {
+  $('brush-color-hex').textContent = $('brush-color').value.toUpperCase();
+});
+
+// ── Converte coordenada do canvas para célula do grid ──
+function canvasToCell(clientX, clientY) {
+  const rect = edCanvas.getBoundingClientRect();
+  // scroll offset do wrap
+  const wrap = $('editor-canvas-wrap');
+  const mx = clientX - rect.left + wrap.scrollLeft;
+  const my = clientY - rect.top  + wrap.scrollTop;
+  // escala css vs real (canvas pode ser maior que o elemento exibido)
+  const scaleX = edCanvas.width  / rect.width;
+  const scaleY = edCanvas.height / rect.height;
+  const col = Math.floor((mx * scaleX) / DISPLAY_CELL);
+  const row = Math.floor((my * scaleY) / DISPLAY_CELL);
+  if (col < 0 || col >= state.cols || row < 0 || row >= state.rows) return null;
+  return { col, row };
+}
+
+// ── Pinta uma célula com o pincel ──
+function paintCell(col, row) {
+  const colorKey = state.activePhase === 0 ? 'hex_color'
+                 : state.activePhase === 1 ? 'hex_color_2' : 'hex_color_3';
+  const color = $('brush-color').value;
+  const p = state.pixels.find(px => px.col === col && px.row === row);
+  if (!p) return;
+  p[colorKey] = color;
+
+  // Redesenha só a célula alterada no canvas do editor (eficiente)
+  edCtx.fillStyle = color;
+  edCtx.fillRect(col * DISPLAY_CELL, row * DISPLAY_CELL, DISPLAY_CELL, DISPLAY_CELL);
+
+  // Grade sobre a célula
+  edCtx.strokeStyle = 'rgba(255,255,255,.08)';
+  edCtx.lineWidth = .5;
+  edCtx.strokeRect(col * DISPLAY_CELL + .25, row * DISPLAY_CELL + .25, DISPLAY_CELL - .5, DISPLAY_CELL - .5);
+
+  // Redesenha label se zoom estiver alto
+  if (DISPLAY_CELL >= 12) {
+    const fontSize = Math.max(5, Math.min(DISPLAY_CELL * 0.28, 12));
+    edCtx.font = `${fontSize}px monospace`;
+    edCtx.textAlign = 'center'; edCtx.textBaseline = 'middle';
+    const hex = color.replace('#','');
+    const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+    const lum = (0.299*r + 0.587*g + 0.114*b) / 255;
+    edCtx.fillStyle = lum > 0.5 ? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.35)';
+    const label = DISPLAY_CELL >= 30 ? pixelId(row,col) : (DISPLAY_CELL >= 18 ? alphaRow(row)+(col+1) : '');
+    if (label) edCtx.fillText(label, col*DISPLAY_CELL+DISPLAY_CELL/2, row*DISPLAY_CELL+DISPLAY_CELL/2);
+  }
+
+  renderGrid(); // atualiza preview
+}
+
+// ── Conta-gotas: captura cor de uma célula ──
+function eyedropCell(col, row) {
+  const colorKey = state.activePhase === 0 ? 'hex_color'
+                 : state.activePhase === 1 ? 'hex_color_2' : 'hex_color_3';
+  const p = state.pixels.find(px => px.col === col && px.row === row);
+  if (!p) return;
+  const color = p[colorKey] || '#000000';
+  $('brush-color').value = color;
+  $('brush-color-hex').textContent = color.toUpperCase();
+  // troca automaticamente para pincel após capturar
+  setTool('brush');
+  toast('✓ Cor capturada: ' + color.toUpperCase());
+}
+
+// Controles zoom do editor
+function updateEdZoomLabel() {
+  $('ed-zoom-label').textContent = DISPLAY_CELL + 'px';
+}
+$('ed-zoom-in').addEventListener('click', () => {
+  if (edZoomIdx < ED_CELL_STEPS.length - 1) {
+    edZoomIdx++;
+    DISPLAY_CELL = ED_CELL_STEPS[edZoomIdx];
+    updateEdZoomLabel();
+    if (state.srcImage) { rebuildEditorCanvas(); renderEditor(); }
+  }
+});
+$('ed-zoom-out').addEventListener('click', () => {
+  if (edZoomIdx > 0) {
+    edZoomIdx--;
+    DISPLAY_CELL = ED_CELL_STEPS[edZoomIdx];
+    updateEdZoomLabel();
+    if (state.srcImage) { rebuildEditorCanvas(); renderEditor(); }
+  }
+});
+$('ed-zoom-reset').addEventListener('click', () => {
+  edZoomIdx = 3;
+  DISPLAY_CELL = ED_CELL_STEPS[edZoomIdx];
+  updateEdZoomLabel();
+  if (state.srcImage) { rebuildEditorCanvas(); renderEditor(); }
+});
+updateEdZoomLabel();
+
+function rebuildEditorCanvas() {
+  edCanvas.width  = state.cols * DISPLAY_CELL;
+  edCanvas.height = state.rows * DISPLAY_CELL;
+}
+
+function openEditor(img) {
+  state.srcImage = img;
+
+  // Salva na fase ativa
+  const phase = state.phases[state.activePhase];
+  phase.srcImage = img;
+  phase.bgColor  = $('ctrl-bg').value;
+
+  rebuildEditorCanvas();
+
+  // Escala inicial: cabe no grid preservando proporção
+  const fitScale = Math.min(state.cols / img.width, state.rows / img.height);
+  editor.scale = fitScale;
+  editor.offX  = 0;
+  editor.offY  = 0;
+
+  phase.scale = editor.scale;
+  phase.offX  = 0;
+  phase.offY  = 0;
+
+  syncSlidersFromEditor();
+  updateEditorInfo();
+  renderEditor();
+
+  // Reset do modo grid effect ao carregar nova imagem
+  gridEffectApplied = false;
+  const geBtn = $('btn-grid-effect');
+  if (geBtn) {
+    geBtn.textContent = '⬛ Aplicar Grid Effect';
+    geBtn.classList.remove('applied');
+  }
+  const hint = $('grid-effect-hint');
+  if (hint) hint.innerHTML = 'Converte cada célula para a cor dominante. Visualize exatamente o que o torcedor verá.';
+  edCanvas.style.cursor = 'grab';
+
+  $('upload-card').style.display = 'none';
+  $('preview-card').style.display = 'none';
+  $('editor-card').style.display = '';
+  $('btn-save-grid').disabled = false;
+  updatePhaseDots();
+}
+
+function renderEditor() {
+  const W = edCanvas.width, H = edCanvas.height;
+  const bgColor = $('ctrl-bg').value;
+
+  edCtx.fillStyle = bgColor;
+  edCtx.fillRect(0, 0, W, H);
+
+  if (gridEffectApplied) {
+    // ── MODO GRID EFFECT: desenha cada célula com cor sólida dominante ──
+    bakePixels(); // recalcula com votação por maioria
+    const colorKey = state.activePhase === 0 ? 'hex_color'
+                   : state.activePhase === 1 ? 'hex_color_2' : 'hex_color_3';
+    state.pixels.forEach(p => {
+      edCtx.fillStyle = p[colorKey] || bgColor;
+      edCtx.fillRect(p.col * DISPLAY_CELL, p.row * DISPLAY_CELL, DISPLAY_CELL, DISPLAY_CELL);
+    });
+  } else {
+    // ── MODO NORMAL: desenha a imagem original ──
+    const imgW = state.srcImage.width  * editor.scale * DISPLAY_CELL;
+    const imgH = state.srcImage.height * editor.scale * DISPLAY_CELL;
+    const cx   = W/2 + editor.offX * DISPLAY_CELL;
+    const cy   = H/2 + editor.offY * DISPLAY_CELL;
+    edCtx.drawImage(state.srcImage, cx - imgW/2, cy - imgH/2, imgW, imgH);
+  }
+
+  // Grade
+  edCtx.strokeStyle = 'rgba(255,255,255,.08)';
+  edCtx.lineWidth = .5;
+  for (let c = 0; c <= state.cols; c++) {
+    edCtx.beginPath(); edCtx.moveTo(c*DISPLAY_CELL,0); edCtx.lineTo(c*DISPLAY_CELL,H); edCtx.stroke();
+  }
+  for (let r = 0; r <= state.rows; r++) {
+    edCtx.beginPath(); edCtx.moveTo(0,r*DISPLAY_CELL); edCtx.lineTo(W,r*DISPLAY_CELL); edCtx.stroke();
+  }
+
+  // Labels de posição como marca d'água
+  if (DISPLAY_CELL >= 12) {
+    const fontSize = Math.max(5, Math.min(DISPLAY_CELL * 0.28, 12));
+    edCtx.font = `${fontSize}px monospace`;
+    edCtx.textAlign = 'center';
+    edCtx.textBaseline = 'middle';
+    edCtx.fillStyle = 'rgba(255,255,255,.28)';
+    for (let r = 0; r < state.rows; r++) {
+      for (let c = 0; c < state.cols; c++) {
+        const label = DISPLAY_CELL >= 30
+          ? pixelId(r, c)
+          : (DISPLAY_CELL >= 18 ? alphaRow(r) + (c+1) : (r===0 ? c+1 : (c===0 ? alphaRow(r) : '')));
+        if (label) edCtx.fillText(label, c*DISPLAY_CELL + DISPLAY_CELL/2, r*DISPLAY_CELL + DISPLAY_CELL/2);
+      }
+    }
+  }
+
+  // Bake pixels
+  bakePixels();
+  renderGrid();
+}
+
+function bakePixels() {
+  // Renderiza a imagem em alta resolução (SAMPLES_PER_CELL amostras por célula)
+  // Depois elege a cor mais frequente dentro de cada célula — grid effect puro
+  const SAMPLES = 8; // subdivisão por célula (8x8 = 64 amostras/célula)
+  const W = state.cols * SAMPLES;
+  const H = state.rows * SAMPLES;
+
+  const tmp = document.createElement('canvas');
+  tmp.width  = W;
+  tmp.height = H;
+  const tc = tmp.getContext('2d', { willReadFrequently: true });
+  tc.imageSmoothingEnabled = false;
+
+  const bgColor = $('ctrl-bg').value;
+  tc.fillStyle = bgColor;
+  tc.fillRect(0, 0, W, H);
+
+  // Desenha a imagem escalada para o canvas de alta resolução
+  const imgW = state.srcImage.width  * editor.scale * SAMPLES;
+  const imgH = state.srcImage.height * editor.scale * SAMPLES;
+  const cx   = (state.cols/2 + editor.offX) * SAMPLES;
+  const cy   = (state.rows/2 + editor.offY) * SAMPLES;
+  tc.drawImage(state.srcImage, cx - imgW/2, cy - imgH/2, imgW, imgH);
+
+  const imgData = tc.getImageData(0, 0, W, H).data;
+
+  const colorKey = state.activePhase === 0 ? 'hex_color'
+                 : state.activePhase === 1 ? 'hex_color_2'
+                 : 'hex_color_3';
+
+  // Função: quantiza canal para múltiplo de 32 (paleta reduzida — agrupa cores próximas)
+  const q = v => Math.min(240, Math.round(v / 32) * 32);
+  const toHex = (r,g,b) => '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+
+  state.pixels.forEach(p => {
+    // Conta votos de cada cor dentro da célula (SAMPLES×SAMPLES amostras)
+    const votes = {};
+    let maxVotes = 0;
+    let winner   = bgColor;
+
+    for (let dy = 0; dy < SAMPLES; dy++) {
+      for (let dx = 0; dx < SAMPLES; dx++) {
+        const px = p.col * SAMPLES + dx;
+        const py = p.row * SAMPLES + dy;
+        const i  = (py * W + px) * 4;
+        const a  = imgData[i + 3];
+
+        let key;
+        if (a < 128) {
+          // Pixel transparente vota na cor de fundo
+          key = bgColor;
+        } else {
+          // Quantiza para reduzir variações mínimas e agrupar a mesma cor
+          const r = q(imgData[i]);
+          const g = q(imgData[i+1]);
+          const b = q(imgData[i+2]);
+          key = toHex(r, g, b);
+        }
+
+        votes[key] = (votes[key] || 0) + 1;
+        if (votes[key] > maxVotes) {
+          maxVotes = votes[key];
+          winner   = key;
+        }
+      }
+    }
+
+    p[colorKey] = winner;
+  });
+}
+
+function syncSlidersFromEditor() {
+  const scalePercent = Math.round(editor.scale * 100 / Math.min(state.cols / state.srcImage.width, state.rows / state.srcImage.height));
+  $('ctrl-scale').value = Math.min(300, Math.max(10, scalePercent));
+  $('ctrl-posx').value  = Math.round(editor.offX);
+  $('ctrl-posy').value  = Math.round(editor.offY);
+  updateSliderLabels();
+}
+
+function updateSliderLabels() {
+  $('scale-val').textContent = $('ctrl-scale').value + '%';
+  $('posx-val').textContent  = $('ctrl-posx').value + 'px';
+  $('posy-val').textContent  = $('ctrl-posy').value + 'px';
+}
+
+function updateEditorInfo() {
+  $('info-total').textContent   = state.pixels.length;
+  $('info-cols').textContent    = state.cols;
+  $('info-rows').textContent    = state.rows;
+  $('info-imgsize').textContent = state.srcImage.width + '×' + state.srcImage.height;
+  $('info-status').textContent  = '✓ editando';
+}
+
+// Sliders → render
+$('ctrl-scale').addEventListener('input', () => {
+  if (!state.srcImage) return;
+  const baseFit = Math.min(state.cols / state.srcImage.width, state.rows / state.srcImage.height);
+  editor.scale = baseFit * ($('ctrl-scale').value / 100);
+  updateSliderLabels(); renderEditor();
+});
+$('ctrl-posx').addEventListener('input', () => {
+  editor.offX = parseFloat($('ctrl-posx').value);
+  updateSliderLabels(); renderEditor();
+});
+$('ctrl-posy').addEventListener('input', () => {
+  editor.offY = parseFloat($('ctrl-posy').value);
+  updateSliderLabels(); renderEditor();
+});
+$('ctrl-bg').addEventListener('input', () => { if (state.srcImage) renderEditor(); });
+
+// Drag no canvas do editor
+const edWrap = $('editor-canvas-wrap');
+function startDrag(x, y) {
+  if (activeTool !== 'move' || gridEffectApplied) return;
+  editor.dragging = true; editor.lastX = x; editor.lastY = y;
+}
+function moveDrag(x, y) {
+  if (!state.srcImage) return;
+  if (editor.dragging && activeTool === 'move' && !gridEffectApplied) {
+    const dx = (x - editor.lastX) / DISPLAY_CELL;
+    const dy = (y - editor.lastY) / DISPLAY_CELL;
+    editor.offX += dx; editor.offY += dy;
+    editor.lastX = x; editor.lastY = y;
+    $('ctrl-posx').value = Math.round(editor.offX);
+    $('ctrl-posy').value = Math.round(editor.offY);
+    updateSliderLabels(); renderEditor();
+  }
+  if (isPainting && activeTool === 'brush') {
+    const cell = canvasToCell(x, y);
+    if (cell) paintCell(cell.col, cell.row);
+  }
+}
+const stopDrag = () => { editor.dragging = false; isPainting = false; };
+
+edCanvas.addEventListener('mousedown', e => {
+  if (!state.srcImage && !state.pixels.length) return;
+  const cell = canvasToCell(e.clientX, e.clientY);
+
+  if (activeTool === 'move') {
+    startDrag(e.clientX, e.clientY);
+  } else if (activeTool === 'brush') {
+    if (!gridEffectApplied) { toast('Ative o Grid Effect para pintar pixels!', 'err'); return; }
+    isPainting = true;
+    if (cell) paintCell(cell.col, cell.row);
+  } else if (activeTool === 'eyedrop') {
+    if (!gridEffectApplied) { toast('Ative o Grid Effect para usar o conta-gotas!', 'err'); return; }
+    if (cell) eyedropCell(cell.col, cell.row);
+  }
+});
+
+window.addEventListener('mousemove', e => {
+  // Atualiza info do pixel hover
+  if (state.pixels.length && $('editor-card').style.display !== 'none') {
+    const cell = canvasToCell(e.clientX, e.clientY);
+    const info = $('tool-pixel-info');
+    if (info) {
+      if (cell) {
+        const colorKey = state.activePhase === 0 ? 'hex_color' : state.activePhase === 1 ? 'hex_color_2' : 'hex_color_3';
+        const p = state.pixels.find(px => px.col === cell.col && px.row === cell.row);
+        const color = p ? (p[colorKey] || '#000') : '—';
+        info.innerHTML = pixelId(cell.row, cell.col) + ' <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+color+';vertical-align:middle;margin:0 3px;border:1px solid #333"></span>' + color.toUpperCase();
+      } else {
+        info.textContent = '—';
+      }
+    }
+  }
+  moveDrag(e.clientX, e.clientY);
+});
+
+window.addEventListener('mouseup', stopDrag);
+edCanvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  const cell = canvasToCell(t.clientX, t.clientY);
+  if (activeTool === 'move') startDrag(t.clientX, t.clientY);
+  else if (activeTool === 'brush') {
+    if (!gridEffectApplied) { toast('Ative o Grid Effect para pintar!', 'err'); return; }
+    isPainting = true;
+    if (cell) paintCell(cell.col, cell.row);
+  } else if (activeTool === 'eyedrop') {
+    if (!gridEffectApplied) { toast('Ative o Grid Effect para usar o conta-gotas!', 'err'); return; }
+    if (cell) eyedropCell(cell.col, cell.row);
+  }
+}, { passive: false });
+window.addEventListener('touchmove', e => {
+  e.preventDefault();
+  moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: false });
+window.addEventListener('touchend', stopDrag);
+
+// Scroll wheel = zoom
+edCanvas.addEventListener('wheel', e => {
+  if (!state.srcImage) return;
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -5 : 5;
+  const cur   = parseInt($('ctrl-scale').value);
+  $('ctrl-scale').value = Math.min(300, Math.max(10, cur + delta));
+  $('ctrl-scale').dispatchEvent(new Event('input'));
+}, { passive: false });
+
+// Reset / centralizar
+$('btn-reset-editor').addEventListener('click', () => {
+  if (!state.srcImage) return;
+  editor.offX = 0; editor.offY = 0;
+  const baseFit = Math.min(state.cols / state.srcImage.width, state.rows / state.srcImage.height);
+  editor.scale = baseFit;
+  syncSlidersFromEditor(); renderEditor();
+  toast('Posição centralizada.');
+});
+
+$('btn-new-image').addEventListener('click', () => { $('file-input').click(); });
+
+// ── Botão Grid Effect ──
+$('btn-grid-effect').addEventListener('click', () => {
+  if (!state.srcImage) return;
+
+  gridEffectApplied = !gridEffectApplied;
+  const btn = $('btn-grid-effect');
+  const hint = $('grid-effect-hint');
+
+  if (gridEffectApplied) {
+    btn.textContent = '✓ Grid Effect Ativo — ver imagem original';
+    btn.classList.add('applied');
+    hint.innerHTML = '<span style="color:var(--green)">✓ Visualizando cores sólidas finais.</span> Cada célula mostra a cor dominante que o torcedor verá.';
+    // desativa drag/zoom no modo grid effect (não faz sentido mover)
+    edCanvas.style.cursor = 'default';
+  } else {
+    btn.textContent = '⬛ Aplicar Grid Effect';
+    btn.classList.remove('applied');
+    hint.innerHTML = 'Converte cada célula para a cor dominante. Visualize exatamente o que o torcedor verá.';
+    edCanvas.style.cursor = 'grab';
+  }
+
+  renderEditor();
+});
+
+// ── Upload & processamento de imagem ──
+const uploadArea = $('upload-area');
+const fileInput  = $('file-input');
+
+uploadArea.addEventListener('click', e => {
+  if (e.target === fileInput) return;
+  fileInput.click();
+});
+['dragenter','dragover'].forEach(e => uploadArea.addEventListener(e, ev => {
+  ev.preventDefault(); ev.stopPropagation(); uploadArea.classList.add('drag');
+}));
+['dragleave','dragend'].forEach(e => uploadArea.addEventListener(e, () => uploadArea.classList.remove('drag')));
+uploadArea.addEventListener('drop', ev => {
+  ev.preventDefault(); ev.stopPropagation();
+  uploadArea.classList.remove('drag');
+  const f = ev.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadImageFile(f);
+  else toast('Use PNG, JPG ou GIF.', 'err');
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) loadImageFile(fileInput.files[0]);
+  fileInput.value = '';
+});
+
+function loadImageFile(file) {
+  if (state.pixels.length === 0) {
+    toast('Clique em "Aplicar Grid" antes de subir a imagem!', 'err'); return;
+  }
+  const wrap = $('proc-progress-wrap');
+  const fill  = $('proc-progress');
+  wrap.style.display = 'block'; fill.style.width = '20%';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      fill.style.width = '100%';
+      setTimeout(() => { wrap.style.display = 'none'; fill.style.width = '0%'; }, 400);
+      openEditor(img);
+      toast('✓ Imagem carregada — ajuste posição e tamanho!');
+    };
+    img.onerror = () => { wrap.style.display = 'none'; toast('Imagem inválida.', 'err'); };
+    img.src = e.target.result;
+  };
+  reader.onerror = () => { wrap.style.display = 'none'; toast('Erro ao ler arquivo.', 'err'); };
+  reader.readAsDataURL(file);
+}
+
+// ── Salvar no Supabase ──
+$('btn-save-grid').addEventListener('click', async () => {
+  if (!state.supabaseUrl || !state.supabaseKey) {
+    toast('Configure o Supabase primeiro!', 'err'); return;
+  }
+  const btn = $('btn-save-grid');
+  btn.textContent = 'Salvando...'; btn.disabled = true;
+
+  try {
+    // Salva editor atual antes de persistir
+    saveEditorToPhase();
+
+    // Rebake todas as fases com grid effect (votação por maioria)
+    const SAMPLES = 8;
+    const q = v => Math.min(240, Math.round(v / 32) * 32);
+    const toHex = (r,g,b) => '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+
+    for (let fi = 0; fi < 3; fi++) {
+      const ph = state.phases[fi];
+      if (!ph.srcImage) continue;
+
+      const W = state.cols * SAMPLES, H = state.rows * SAMPLES;
+      const tmp = document.createElement('canvas');
+      tmp.width = W; tmp.height = H;
+      const tc = tmp.getContext('2d', { willReadFrequently: true });
+      tc.imageSmoothingEnabled = false;
+      tc.fillStyle = ph.bgColor;
+      tc.fillRect(0, 0, W, H);
+      const imgW = ph.srcImage.width  * ph.scale * SAMPLES;
+      const imgH = ph.srcImage.height * ph.scale * SAMPLES;
+      const cx   = (state.cols/2 + ph.offX) * SAMPLES;
+      const cy   = (state.rows/2 + ph.offY) * SAMPLES;
+      tc.drawImage(ph.srcImage, cx - imgW/2, cy - imgH/2, imgW, imgH);
+      const data = tc.getImageData(0, 0, W, H).data;
+      const colorKey = fi === 0 ? 'hex_color' : fi === 1 ? 'hex_color_2' : 'hex_color_3';
+
+      state.pixels.forEach(p => {
+        const votes = {}; let maxV = 0, winner = ph.bgColor;
+        for (let dy = 0; dy < SAMPLES; dy++) {
+          for (let dx = 0; dx < SAMPLES; dx++) {
+            const i = ((p.row*SAMPLES+dy)*W + (p.col*SAMPLES+dx)) * 4;
+            const a = data[i+3];
+            const key = a < 128 ? ph.bgColor : toHex(q(data[i]), q(data[i+1]), q(data[i+2]));
+            votes[key] = (votes[key]||0) + 1;
+            if (votes[key] > maxV) { maxV = votes[key]; winner = key; }
+          }
+        }
+        p[colorKey] = winner;
+      });
+    }
+
+    // Upsert em lotes de 500
+    const BATCH = 500;
+    for (let i = 0; i < state.pixels.length; i += BATCH) {
+      const chunk = state.pixels.slice(i, i + BATCH);
+      const res = await sbFetch('pixels', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify(chunk)
+      });
+      if (!res.ok) throw new Error(await res.text());
+    }
+    const fasesAtivas = state.phases.filter(p => p.srcImage).length;
+    toast(`✓ ${state.pixels.length} pixels salvos · ${fasesAtivas} fase(s) configurada(s)!`);
+  } catch (e) {
+    toast('Erro: ' + e.message, 'err');
+  } finally {
+    btn.textContent = 'Salvar tudo no Supabase'; btn.disabled = false;
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// SEÇÃO 2 — EVENTO
+// ─────────────────────────────────────────────────────────────
+// Pré-preenche data/hora de hoje
+const now = new Date();
+$('event-date').value = now.toISOString().slice(0,10);
+$('event-time').value = '20:00:00';
+
+$('btn-save-event').addEventListener('click', async () => {
+  const date = $('event-date').value;
+  const time = $('event-time').value;
+  if (!date || !time) { toast('Preencha data e hora!', 'err'); return; }
+
+  state.eventTime = new Date(`${date}T${time}-03:00`); // BRT = UTC-3
+  state.duration1 = parseInt($('duration-1').value) || 30;
+  state.duration2 = parseInt($('duration-2').value) || 30;
+
+  if (!state.supabaseUrl || !state.supabaseKey) {
+    toast('Evento salvo localmente (Supabase não configurado)');
+    updateEventSummary(); return;
+  }
+
+  try {
+    const res = await sbFetch('event', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({
+        id: 1,
+        event_time: state.eventTime.toISOString(),
+        grid_rows: state.rows, grid_cols: state.cols,
+        active: true,
+        duration_1: state.duration1,
+        duration_2: state.duration2
+      })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    toast('Evento salvo no Supabase!');
+    updateEventSummary();
+  } catch (e) {
+    toast('Erro: ' + e.message, 'err');
+  }
+});
+
+function updateEventSummary() {
+  if (!state.eventTime) { $('ev-datetime').textContent = '—'; return; }
+  $('ev-datetime').textContent = state.eventTime.toLocaleString('pt-BR');
+  $('ev-pixels').textContent   = state.pixels.length || '—';
+  const diff = state.eventTime - new Date();
+  if (diff > 0) {
+    const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000);
+    $('ev-countdown').textContent = `${h}h ${m}min`;
+    $('ev-status').textContent    = '🟡 Aguardando';
+  } else {
+    $('ev-countdown').textContent = '—';
+    $('ev-status').textContent    = '✅ Concluído';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SEÇÃO 3 — QR CODES
+// ─────────────────────────────────────────────────────────────
+$('btn-gen-qr').addEventListener('click', async () => {
+  if (!state.pixels.length) { toast('Defina o grid primeiro!', 'err'); return; }
+  const base = $('base-url').value.trim().replace(/\/$/, '');
+  if (!base) { toast('Informe a URL base!', 'err'); return; }
+  state.baseUrl = base;
+
+  const container = $('qr-container');
+  container.innerHTML = '';
+  $('qr-count').textContent = state.pixels.length;
+  const wrap = $('qr-progress-wrap');
+  const fill  = $('qr-progress');
+  wrap.style.display = 'block';
+
+  // gera em chunks para não travar UI
+  const CHUNK = 20;
+  for (let i = 0; i < state.pixels.length; i += CHUNK) {
+    const chunk = state.pixels.slice(i, i + CHUNK);
+    chunk.forEach(p => {
+      const url = `${base}?id=${encodeURIComponent(p.id)}`;
+      const cell = document.createElement('div');
+      cell.className = 'qr-cell';
+      cell.innerHTML = `<div class="qr-img" id="qr-${p.id}"></div>
+        <p><span class="qr-color" style="background:${p.hex_color}"></span>${p.id}</p>`;
+      container.appendChild(cell);
+      new QRCode(`qr-${p.id}`, { text: url, width: 80, height: 80,
+        colorDark:'#000', colorLight:'#fff', correctLevel: QRCode.CorrectLevel.M });
+    });
+    fill.style.width = ((i + CHUNK) / state.pixels.length * 100) + '%';
+    await new Promise(r => setTimeout(r, 0)); // yield para render
+  }
+
+  fill.style.width = '100%';
+  setTimeout(() => { wrap.style.display = 'none'; fill.style.width = '0%'; }, 600);
+  state.qrGenerated = true;
+  toast(`${state.pixels.length} QR Codes gerados!`);
+});
+
+// ─────────────────────────────────────────────────────────────
+// SEÇÃO 4 — EXPORTAR
+// ─────────────────────────────────────────────────────────────
+$('btn-export-csv').addEventListener('click', () => {
+  if (!state.pixels.length) { toast('Gere o grid primeiro!', 'err'); return; }
+  const base = state.baseUrl || $('base-url').value || 'https://seusite.com/torcedor.html';
+  const rows = ['id,linha,coluna,hex_color,url'];
+  state.pixels.forEach(p => {
+    const url = `${base}?id=${p.id}`;
+    rows.push(`${p.id},${alphaRow(p.row)},${p.col+1},${p.hex_color},${url}`);
+  });
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mosaico-cadeiras.csv';
+  a.click();
+  toast('CSV exportado!');
+});
+
+$('btn-export-zip').addEventListener('click', () => {
+  toast('Para ZIP: adicione JSZip à página e reabra.', 'err');
+});
+
+// ─────────────────────────────────────────────────────────────
+// SEÇÃO 5 — CONFIGURAÇÃO
+// ─────────────────────────────────────────────────────────────
+const DEFAULT_URL = 'https://gfbcvggocfysurnfygzy.supabase.co';
+const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmYmN2Z2dvY2Z5c3VybmZ5Z3p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1Mjk3MDQsImV4cCI6MjA4NzEwNTcwNH0.f_tRUILLMrxOCTQh9ud7FN44dUXnDbux2n799ocYqVQ';
+
+function loadConfig() {
+  const url = localStorage.getItem('sb_url') || DEFAULT_URL;
+  const key = localStorage.getItem('sb_key') || DEFAULT_KEY;
+  $('cfg-url').value = url;
+  $('cfg-key').value = key;
+  state.supabaseUrl = url;
+  state.supabaseKey = key;
+  updateConnectionStatus();
+}
+
+$('btn-save-cfg').addEventListener('click', () => {
+  state.supabaseUrl = $('cfg-url').value.trim().replace(/\/$/, '');
+  state.supabaseKey = $('cfg-key').value.trim();
+  localStorage.setItem('sb_url', state.supabaseUrl);
+  localStorage.setItem('sb_key', state.supabaseKey);
+  updateConnectionStatus();
+  toast('Configuração salva!');
+});
+
+$('btn-test-cfg').addEventListener('click', async () => {
+  if (!state.supabaseUrl || !state.supabaseKey) { toast('Preencha URL e Key!', 'err'); return; }
+  try {
+    const res = await sbFetch('event?select=id&limit=1');
+    if (res.ok) { toast('Conexão OK!'); $('dot-status').className='status-dot ok'; }
+    else throw new Error('Status ' + res.status);
+  } catch (e) {
+    toast('Falha: ' + e.message, 'err'); $('dot-status').className='status-dot err';
+  }
+});
+
+$('btn-copy-sql').addEventListener('click', () => {
+  const sql = `create table pixels (
+  id          text primary key,
+  row         int  not null,
+  col         int  not null,
+  hex_color   text not null,
+  hex_color_2 text,
+  hex_color_3 text,
+  seat        text,
+  event_time  timestamptz
+);
+
+create table event (
+  id          int  primary key default 1,
+  event_time  timestamptz,
+  grid_rows   int,
+  grid_cols   int,
+  active      boolean default false,
+  duration_1  int  default 30,
+  duration_2  int  default 30
+);
+
+-- Se já criou as tabelas antes, rode apenas:
+-- alter table pixels add column if not exists hex_color_2 text;
+-- alter table pixels add column if not exists hex_color_3 text;
+-- alter table event  add column if not exists duration_1 int default 30;
+-- alter table event  add column if not exists duration_2 int default 30;`;
+  navigator.clipboard.writeText(sql).then(() => toast('SQL copiado!'));
+});
+
+function updateConnectionStatus() {
+  const has = state.supabaseUrl && state.supabaseKey;
+  $('dot-status').className = 'status-dot ' + (has ? 'ok' : '');
+  $('sidebar-status').textContent = has ? 'Supabase configurado' : 'Supabase não configurado';
+}
+
+// ─────────────────────────────────────────────────────────────
+// SUPABASE FETCH HELPER
+// ─────────────────────────────────────────────────────────────
+function sbFetch(path, opts={}) {
+  const headers = {
+    'apikey': state.supabaseKey,
+    'Authorization': `Bearer ${state.supabaseKey}`,
+    'Content-Type': 'application/json',
+    ...(opts.headers || {})
+  };
+  return fetch(`${state.supabaseUrl}/rest/v1/${path}`, { ...opts, headers });
+}
+
+// ─────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────
+loadConfig();
+applyGrid();
+</script>
+</body>
+</html>

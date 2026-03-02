@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<title>Mosaico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #080808;
+    --surface: #111;
+    --border: #1e1e1e;
+    --text: #f0f0f0;
+    --muted: #555;
+    --accent: #fff;
+    --pixel-color: #ff0000; /* será sobrescrito via JS */
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    overflow: hidden;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── TELAS ─────────────────────────────────────────── */
+  .screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .5s ease;
+  }
+  .screen.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ── LOADING ────────────────────────────────────────── */
+  #screen-loading .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid #222;
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  #screen-loading p {
+    margin-top: 18px;
+    font-size: 11px;
+    letter-spacing: .2em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── INSTRUCOES ─────────────────────────────────────── */
+  #screen-instrucoes {
+    gap: 0;
+    background: var(--bg);
+  }
+
+  .badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 11px;
+    letter-spacing: .25em;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+
+  .seat-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: .05em;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .seat-sub {
+    font-size: 10px;
+    letter-spacing: .3em;
+    color: var(--muted);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  /* preview de cor */
+  .color-preview-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 40px;
+    padding: 14px 20px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #0d0d0d;
+  }
+  .color-swatch {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    background: var(--pixel-color);
+    flex-shrink: 0;
+  }
+  .color-swatch.pulse { animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .4; }
+  }
+  .color-info p { font-size: 11px; color: var(--muted); letter-spacing: .1em; }
+  .color-info span { font-size: 13px; color: var(--text); font-weight: 500; }
+
+  /* instruções */
+  .instrucoes-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    max-width: 340px;
+    margin-bottom: 36px;
+  }
+  .instrucoes-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #0d0d0d;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #ccc;
+  }
+  .instrucoes-list li .icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .btn-pronto {
+    width: 100%;
+    max-width: 340px;
+    padding: 16px;
+    border: none;
+    border-radius: 10px;
+    background: #fff;
+    color: #000;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: .15em;
+    cursor: pointer;
+    transition: transform .1s, opacity .1s;
+  }
+  .btn-pronto:active { transform: scale(.97); opacity: .85; }
+
+  /* ── COUNTDOWN ──────────────────────────────────────── */
+  #screen-countdown {
+    gap: 0;
+  }
+
+  .countdown-label {
+    font-size: 10px;
+    letter-spacing: .4em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  .countdown-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 22vw, 120px);
+    line-height: 1;
+    letter-spacing: .02em;
+    text-align: center;
+    color: var(--text);
+    /* scanline sutil */
+    position: relative;
+  }
+
+  .color-hint {
+    margin-top: 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #0d0d0d;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .color-hint .dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--pixel-color);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .sync-status {
+    margin-top: 20px;
+    font-size: 10px;
+    letter-spacing: .2em;
+    color: var(--muted);
+  }
+  .sync-status.ok { color: #3dff8f; }
+  .sync-status.err { color: #ff4444; }
+
+  /* ── PIXEL (cor final) ──────────────────────────────── */
+  #screen-pixel {
+    background: var(--pixel-color);
+    transition: background .2s;
+  }
+
+  /* ── ERRO ───────────────────────────────────────────── */
+  #screen-erro p {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    max-width: 280px;
+    line-height: 1.7;
+  }
+  #screen-erro h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    margin-bottom: 12px;
+    color: #ff4444;
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="screen-loading" class="screen active">
+  <div class="spinner"></div>
+  <p>Sincronizando...</p>
+</div>
+
+<!-- INSTRUÇÕES -->
+<div id="screen-instrucoes" class="screen">
+  <p class="badge">MOSAICO · ESTÁDIO</p>
+  <div class="seat-label" id="seat-display">—</div>
+  <p class="seat-sub">Sua posição no mosaico</p>
+
+  <div class="color-preview-wrap">
+    <div class="color-swatch pulse" id="swatch-instrucoes"></div>
+    <div class="color-info">
+      <p>Sua cor será</p>
+      <span id="hex-display">#------</span>
+    </div>
+  </div>
+
+  <ul class="instrucoes-list">
+    <li><span class="icon">☀️</span><span>Aumente o <strong>brilho da tela ao máximo</strong> antes de continuar.</span></li>
+    <li><span class="icon">🔒</span><span><strong>Não bloqueie a tela</strong> nem saia desta página.</span></li>
+    <li><span class="icon">📱</span><span>Na hora H, <strong>vire o celular para o campo</strong>.</span></li>
+  </ul>
+
+  <!-- Preview das fases (só aparece se tiver mais de 1) -->
+  <div id="phase-preview" style="display:none;width:100%;max-width:340px;display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px"></div>
+
+  <button class="btn-pronto" id="btn-pronto">ESTOU PRONTO</button>
+</div>
+
+<!-- COUNTDOWN -->
+<div id="screen-countdown" class="screen">
+  <p class="countdown-label">O mosaico começa em</p>
+  <div class="countdown-display" id="countdown">--:--:--</div>
+  <div class="color-hint">
+    <div class="dot" id="dot-countdown"></div>
+    <span>Sua cor está guardada</span>
+  </div>
+  <p class="sync-status" id="sync-status">⏱ sincronizando relógio...</p>
+</div>
+
+<!-- PIXEL: tela de cor sólida -->
+<div id="screen-pixel" class="screen"></div>
+
+<!-- ERRO -->
+<div id="screen-erro" class="screen">
+  <h2>Ops!</h2>
+  <p id="erro-msg">QR Code inválido ou evento não encontrado.</p>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// CONFIG — substitua pela sua URL do Supabase
+// ─────────────────────────────────────────────────────────────
+const SUPABASE_URL    = 'https://gfbcvggocfysurnfygzy.supabase.co';
+const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmYmN2Z2dvY2Z5c3VybmZ5Z3p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1Mjk3MDQsImV4cCI6MjA4NzEwNTcwNH0.f_tRUILLMrxOCTQh9ud7FN44dUXnDbux2n799ocYqVQ';
+const TIME_API        = 'https://worldtimeapi.org/api/timezone/America/Sao_Paulo';
+
+// ─────────────────────────────────────────────────────────────
+// ESTADO
+// ─────────────────────────────────────────────────────────────
+let pixelColor   = '#ff0000';
+let phases       = [];     // [{color, delay_ms}] — montado após fetch
+let eventTime    = null;   // Date (BRT)
+let clockOffset  = 0;      // ms de diferença local vs BRT
+let wakeLock     = null;
+let countdownInt = null;
+let phaseTimers  = [];     // setTimeout refs para limpeza
+
+// ─────────────────────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const show = id => {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+};
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
+function nowSynced() {
+  return new Date(Date.now() + clockOffset);
+}
+
+function formatCountdown(ms) {
+  if (ms <= 0) return '00:00:00';
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  const s = Math.floor((ms % 60_000) / 1_000);
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+function applyColor(hex) {
+  pixelColor = hex;
+  document.documentElement.style.setProperty('--pixel-color', hex);
+  $('swatch-instrucoes') && ($('swatch-instrucoes').style.background = hex);
+  $('dot-countdown')     && ($('dot-countdown').style.background     = hex);
+  $('screen-pixel').style.background = hex;
+  $('hex-display') && ($('hex-display').textContent = hex.toUpperCase());
+}
+
+// ─────────────────────────────────────────────────────────────
+// 1. LÊ O ID DO QR CODE (parâmetro ?id=A10)
+// ─────────────────────────────────────────────────────────────
+function getPixelId() {
+  const p = new URLSearchParams(location.search);
+  return p.get('id'); // ex: "A10", "B23"
+}
+
+// ─────────────────────────────────────────────────────────────
+// 2. BUSCA DADOS DO PIXEL + HORÁRIO DO EVENTO NO SUPABASE
+// ─────────────────────────────────────────────────────────────
+async function fetchPixelData(id) {
+  const headers = { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` };
+
+  const [pixelRes, eventRes] = await Promise.all([
+    fetch(`${SUPABASE_URL}/rest/v1/pixels?id=eq.${encodeURIComponent(id)}&select=seat,hex_color,hex_color_2,hex_color_3`, { headers }),
+    fetch(`${SUPABASE_URL}/rest/v1/event?id=eq.1&select=event_time,duration_1,duration_2`, { headers })
+  ]);
+
+  if (!pixelRes.ok) throw new Error('Erro ao buscar pixel: ' + pixelRes.status);
+  if (!eventRes.ok) throw new Error('Erro ao buscar evento: ' + eventRes.status);
+
+  const pixels = await pixelRes.json();
+  const events = await eventRes.json();
+
+  if (!pixels.length) throw new Error('Cadeira não encontrada. Verifique o QR Code.');
+  if (!events.length || !events[0].event_time) throw new Error('Nenhum evento configurado. Fale com o administrador.');
+
+  return {
+    seat:        pixels[0].seat || id,
+    hex_color:   pixels[0].hex_color,
+    hex_color_2: pixels[0].hex_color_2 || null,
+    hex_color_3: pixels[0].hex_color_3 || null,
+    event_time:  events[0].event_time,
+    duration_1:  events[0].duration_1  || 30,
+    duration_2:  events[0].duration_2  || 30,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+// 3. SINCRONIZA RELÓGIO COM HORÁRIO DE BRASÍLIA
+// ─────────────────────────────────────────────────────────────
+async function syncClock() {
+  try {
+    const before = Date.now();
+    const res  = await fetch(TIME_API);
+    const after = Date.now();
+    const rtt  = (after - before) / 2;          // metade do round-trip
+    const data = await res.json();
+    const brtMs = new Date(data.datetime).getTime();
+    clockOffset = brtMs - after + rtt;           // ajuste fino
+    $('sync-status').textContent  = '✓ relógio sincronizado (BRT)';
+    $('sync-status').className    = 'sync-status ok';
+  } catch {
+    clockOffset = 0; // usa relógio local como fallback
+    $('sync-status').textContent  = '⚠ usando relógio local';
+    $('sync-status').className    = 'sync-status err';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// 4. WAKE LOCK
+// ─────────────────────────────────────────────────────────────
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch { /* silencioso */ }
+}
+
+// re-acquire se o doc voltar ao foco
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && !wakeLock) {
+    await requestWakeLock();
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// 5. INICIA COUNTDOWN
+// ─────────────────────────────────────────────────────────────
+function startCountdown() {
+  show('screen-countdown');
+
+  function tick() {
+    const remaining = eventTime - nowSynced();
+    if (remaining <= 0) {
+      clearInterval(countdownInt);
+      firePixel();
+      return;
+    }
+    $('countdown').textContent = formatCountdown(remaining);
+  }
+
+  tick();
+  countdownInt = setInterval(tick, 250);
+}
+
+// ─────────────────────────────────────────────────────────────
+// 6. DISPARO: executa a sequência de fases
+// ─────────────────────────────────────────────────────────────
+function firePixel() {
+  show('screen-pixel');
+  try { document.documentElement.requestFullscreen?.(); } catch {}
+
+  // Fase 1: cor imediata
+  if (phases.length > 0) {
+    applyColor(phases[0].color);
+  }
+
+  // Fases 2 e 3: agendadas por setTimeout sincronizado
+  for (let i = 1; i < phases.length; i++) {
+    const delay = phases[i].delay_ms;
+    const color = phases[i].color;
+    const t = setTimeout(() => {
+      applyColor(color);
+    }, delay);
+    phaseTimers.push(t);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// 7. ERRO
+// ─────────────────────────────────────────────────────────────
+function showErro(msg) {
+  $('erro-msg').textContent = msg;
+  show('screen-erro');
+}
+
+// ─────────────────────────────────────────────────────────────
+// 7b. PREVIEW DE FASES nas instruções
+// ─────────────────────────────────────────────────────────────
+function buildPhasePreview(pixel) {
+  const wrap = $('phase-preview');
+  if (!wrap) return;
+  if (phases.length <= 1) { wrap.style.display = 'none'; return; }
+
+  wrap.style.display = '';
+  wrap.innerHTML = '';
+
+  const labels = ['Fase 1', 'Fase 2', 'Fase 3'];
+  phases.forEach((ph, i) => {
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;flex:1';
+    const dot = document.createElement('div');
+    dot.style.cssText = `width:20px;height:20px;border-radius:4px;background:${ph.color};flex-shrink:0`;
+    const info = document.createElement('div');
+    const delay = i === 0 ? 'no disparo' : `+${i === 1 ? pixel.duration_1 : pixel.duration_1 + pixel.duration_2}s`;
+    info.innerHTML = `<p style="font-size:10px;color:#555;margin-bottom:2px">${labels[i]}</p><p style="font-size:11px">${delay}</p>`;
+    item.append(dot, info);
+    wrap.appendChild(item);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// 8. BOOT
+// ─────────────────────────────────────────────────────────────
+async function boot() {
+  const id = getPixelId();
+  if (!id) return showErro('Nenhum ID de cadeira encontrado. Use o QR Code da sua cadeira.');
+
+  try {
+    const [pixel] = await Promise.all([
+      fetchPixelData(id),
+      syncClock()
+    ]);
+
+    // Monta sequência de fases (apenas as que têm cor definida)
+    phases = [];
+    if (pixel.hex_color)   phases.push({ color: pixel.hex_color,   delay_ms: 0 });
+    if (pixel.hex_color_2) phases.push({ color: pixel.hex_color_2, delay_ms: pixel.duration_1 * 1000 });
+    if (pixel.hex_color_3) phases.push({ color: pixel.hex_color_3, delay_ms: (pixel.duration_1 + pixel.duration_2) * 1000 });
+
+    // Cor de preview = fase 1
+    applyColor(phases.length > 0 ? phases[0].color : '#000000');
+    eventTime = new Date(pixel.event_time);
+    $('seat-display').textContent = pixel.seat || id;
+
+    // Monta preview de fases nas instruções
+    buildPhasePreview(pixel);
+
+    // se o evento já passou
+    if (nowSynced() >= eventTime) {
+      firePixel();
+      return;
+    }
+
+    show('screen-instrucoes');
+
+  } catch (e) {
+    showErro(e.message || 'Erro ao carregar dados. Verifique sua conexão.');
+  }
+}
+
+// Botão "Estou pronto"
+$('btn-pronto').addEventListener('click', async () => {
+  await requestWakeLock();
+  startCountdown();
+});
+
+boot();
+</script>
+</body>
+</html>
